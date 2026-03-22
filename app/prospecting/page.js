@@ -1,9 +1,24 @@
 "use client";
 
 import { useState } from 'react';
-import { Search, Sparkles, Loader2, Save, ExternalLink, MapPin, Mail, Phone, Globe, CheckCircle, ChevronDown, ChevronUp, Settings2, AlertCircle } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Search, Sparkles, Loader2, Save, ExternalLink, MapPin, Mail, Phone, Globe, CheckCircle, ChevronDown, ChevronUp, Settings2, Star, ArrowRight, RefreshCw, Send, Shield } from 'lucide-react';
+
+function QualityBar({ score }) {
+  const color = score >= 70 ? 'var(--accent-success)' : score >= 40 ? 'var(--accent-warning)' : 'var(--accent-danger)';
+  const label = score >= 70 ? 'Strong' : score >= 40 ? 'Fair' : 'Weak';
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.6875rem' }}>
+      <div style={{ width: '48px', height: '4px', borderRadius: '2px', backgroundColor: 'var(--bg-hover)', overflow: 'hidden' }}>
+        <div style={{ width: `${score}%`, height: '100%', backgroundColor: color, borderRadius: '2px', transition: 'width 0.4s ease' }} />
+      </div>
+      <span style={{ color, fontWeight: 600 }}>{label}</span>
+    </div>
+  );
+}
 
 export default function ProspectingPage() {
+  const router = useRouter();
   const [query, setQuery] = useState('');
   const [leads, setLeads] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -25,8 +40,10 @@ export default function ProspectingPage() {
     setSavedIds(new Set());
     setPhase('searching');
 
-    // Simulate phase transitions for UX
-    const phaseTimer = setTimeout(() => setPhase('analyzing'), 2000);
+    const phaseTimers = [
+      setTimeout(() => setPhase('enriching'), 3000),
+      setTimeout(() => setPhase('analyzing'), 8000),
+    ];
 
     try {
       const res = await fetch('/api/prospect', {
@@ -35,7 +52,7 @@ export default function ProspectingPage() {
         body: JSON.stringify({ query: query.trim(), maxResults }),
       });
 
-      clearTimeout(phaseTimer);
+      phaseTimers.forEach(clearTimeout);
 
       if (!res.ok) {
         const data = await res.json();
@@ -69,9 +86,13 @@ export default function ProspectingPage() {
           niche: lead.niche || '',
           location: lead.location || '',
           leadSource: 'AI Prospecting',
-          opportunityLevel: 'high',
+          opportunityLevel: lead.qualityScore >= 70 ? 'critical' : lead.qualityScore >= 40 ? 'high' : 'medium',
           stage: 'New Lead',
-          notes: `WHY: ${lead.why || ''}\n\nSUMMARY: ${lead.summary || ''}`,
+          notes: [
+            lead.why ? `OPPORTUNITY: ${lead.why}` : '',
+            lead.summary ? `SUMMARY: ${lead.summary}` : '',
+            lead.rating ? `GOOGLE: ${lead.rating}/5 (${lead.reviewCount} reviews)` : '',
+          ].filter(Boolean).join('\n\n'),
         }),
       });
 
@@ -85,9 +106,23 @@ export default function ProspectingPage() {
     }
   };
 
+  const handleSaveAll = async () => {
+    const unsavedLeads = leads
+      .map((lead, i) => ({ lead, index: i }))
+      .filter(({ index }) => !savedIds.has(index));
+
+    for (const { lead, index } of unsavedLeads) {
+      await handleSave(lead, index);
+    }
+  };
+
+  const savedCount = savedIds.size;
+  const unsavedCount = leads.length - savedCount;
+
   const phaseMessages = {
-    searching: 'Scouring the web for businesses...',
-    analyzing: 'AI is analyzing and extracting prospects...',
+    searching: 'Finding businesses matching your criteria...',
+    enriching: 'Scraping websites for contact info...',
+    analyzing: 'AI is qualifying each prospect...',
   };
 
   return (
@@ -95,7 +130,7 @@ export default function ProspectingPage() {
       <div className="header-row">
         <div>
           <h1>AI Prospecting</h1>
-          <p className="text-muted">Describe your target market and let AI find real prospects with contact info.</p>
+          <p className="text-muted">Search for businesses, review prospects, then save the best ones to your pipeline.</p>
         </div>
       </div>
 
@@ -125,7 +160,7 @@ export default function ProspectingPage() {
             }}
           >
             {loading ? <Loader2 size={18} className="spin" /> : <Sparkles size={18} />}
-            {loading ? 'Generating...' : 'Find Prospects'}
+            {loading ? 'Searching...' : 'Find Prospects'}
           </button>
         </div>
 
@@ -143,6 +178,7 @@ export default function ProspectingPage() {
             </button>
           ))}
         </div>
+
         {/* Advanced Settings Toggle */}
         <div style={{ marginTop: 'var(--space-3)', borderTop: '1px solid var(--border-subtle)', paddingTop: 'var(--space-3)' }}>
           <button
@@ -172,7 +208,28 @@ export default function ProspectingPage() {
             <Loader2 size={36} className="spin" style={{ color: 'var(--accent-primary)' }} />
           </div>
           <p style={{ fontWeight: 600, fontSize: '1.0625rem', marginBottom: 'var(--space-2)' }}>{phaseMessages[phase] || 'Working...'}</p>
-          <p className="text-muted" style={{ fontSize: '0.8125rem' }}>This typically takes 5–15 seconds</p>
+          <p className="text-muted" style={{ fontSize: '0.8125rem' }}>This typically takes 10–20 seconds</p>
+
+          {/* Phase Steps */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--space-6)', marginTop: 'var(--space-6)', fontSize: '0.75rem' }}>
+            {[
+              { key: 'searching', label: 'Discover' },
+              { key: 'enriching', label: 'Enrich' },
+              { key: 'analyzing', label: 'Qualify' },
+            ].map((step, i) => {
+              const phases = ['searching', 'enriching', 'analyzing'];
+              const currentIdx = phases.indexOf(phase);
+              const stepIdx = phases.indexOf(step.key);
+              const isDone = stepIdx < currentIdx;
+              const isActive = stepIdx === currentIdx;
+              return (
+                <div key={step.key} style={{ display: 'flex', alignItems: 'center', gap: '6px', color: isDone ? 'var(--accent-success)' : isActive ? 'var(--text-primary)' : 'var(--text-muted)', fontWeight: isActive ? 600 : 400 }}>
+                  {isDone ? <CheckCircle size={14} /> : isActive ? <Loader2 size={14} className="spin" /> : <span style={{ width: '14px', height: '14px', borderRadius: '50%', border: '1.5px solid var(--border-strong)', display: 'inline-block' }} />}
+                  {step.label}
+                </div>
+              );
+            })}
+          </div>
 
           {/* Skeleton Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 'var(--space-4)', marginTop: 'var(--space-6)' }}>
@@ -187,31 +244,53 @@ export default function ProspectingPage() {
         </div>
       )}
 
-      {/* Error */}
+      {/* Error with retry */}
       {error && (
         <div className="panel" style={{ padding: 'var(--space-5)', borderLeft: '3px solid var(--accent-danger)' }}>
-          <p style={{ color: 'var(--accent-danger)', fontWeight: 600 }}>Generation Failed</p>
-          <p className="text-muted" style={{ fontSize: '0.875rem' }}>{error}</p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <p style={{ color: 'var(--accent-danger)', fontWeight: 600, marginBottom: '4px' }}>Search Failed</p>
+              <p className="text-muted" style={{ fontSize: '0.875rem' }}>{error}</p>
+            </div>
+            <button className="btn btn-secondary" onClick={handleSearch} style={{ flexShrink: 0 }}>
+              <RefreshCw size={14} /> Retry
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Results */}
+      {/* Results Header */}
       {leads.length > 0 && (
         <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-            <p style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
-              <CheckCircle size={16} style={{ color: 'var(--accent-success)', marginRight: '6px', verticalAlign: '-2px' }} />
-              Found {leads.length} prospects for "{query}"
-            </p>
-            {meta && (
-              <div style={{ display: 'flex', gap: 'var(--space-3)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                <span>🔍 {meta.discovered} discovered</span>
-                <span>📧 {meta.enriched} with email</span>
-                <span>⏱ {(meta.elapsedMs / 1000).toFixed(1)}s</span>
-              </div>
-            )}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)', flexWrap: 'wrap', gap: 'var(--space-3)' }}>
+            <div>
+              <p style={{ fontWeight: 600, color: 'var(--text-primary)', fontSize: '1.0625rem' }}>
+                {leads.length} prospects found
+              </p>
+              {meta && (
+                <div style={{ display: 'flex', gap: 'var(--space-4)', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Search size={11} /> {meta.discovered} discovered</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Mail size={11} /> {meta.enriched} with email</span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><Shield size={11} /> {leads.filter(l => l.qualityScore >= 70).length} strong leads</span>
+                </div>
+              )}
+            </div>
+            <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+              {unsavedCount > 0 && (
+                <button className="btn btn-secondary" onClick={handleSaveAll} style={{ fontSize: '0.8125rem' }}>
+                  <Save size={14} /> Save All ({unsavedCount})
+                </button>
+              )}
+              {savedCount > 0 && (
+                <button className="btn btn-primary" onClick={() => router.push('/outreach')} style={{ fontSize: '0.8125rem' }}>
+                  <Send size={14} /> Write Outreach
+                  <ArrowRight size={14} />
+                </button>
+              )}
+            </div>
           </div>
 
+          {/* Result Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: 'var(--space-4)' }}>
             {leads.map((lead, i) => {
               const isSaved = savedIds.has(i);
@@ -221,30 +300,41 @@ export default function ProspectingPage() {
                 <div key={i} className="panel" style={{
                   padding: 'var(--space-5)',
                   transition: 'all 0.2s ease',
-                  border: isSaved ? '1px solid var(--accent-success)' : undefined,
-                  opacity: isSaved ? 0.75 : 1,
+                  border: isSaved ? '1px solid var(--accent-success)' : '1px solid var(--border-subtle)',
                 }}>
                   {/* Header */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-3)' }}>
-                    <div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
                       <h3 style={{ margin: 0, fontSize: '1.0625rem', fontWeight: 700 }}>{lead.companyName}</h3>
-                      {lead.contactName && <p className="text-muted" style={{ fontSize: '0.8125rem', marginTop: '2px' }}>{lead.contactName}</p>}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', marginTop: '4px' }}>
+                        {lead.contactName && <span className="text-muted" style={{ fontSize: '0.8125rem' }}>{lead.contactName}</span>}
+                        {lead.rating && (
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.75rem', color: 'var(--accent-warning)' }}>
+                            <Star size={11} style={{ fill: 'var(--accent-warning)' }} />
+                            {lead.rating}
+                            <span style={{ color: 'var(--text-muted)' }}>({lead.reviewCount})</span>
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    {lead.niche && (
-                      <span style={{
-                        fontSize: '0.6875rem',
-                        padding: '3px 10px',
-                        borderRadius: 'var(--radius-full)',
-                        backgroundColor: 'var(--accent-indigo-alpha)',
-                        color: 'var(--accent-indigo)',
-                        fontWeight: 600,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.03em',
-                        whiteSpace: 'nowrap',
-                      }}>
-                        {lead.niche}
-                      </span>
-                    )}
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', flexShrink: 0 }}>
+                      {lead.niche && (
+                        <span style={{
+                          fontSize: '0.6875rem',
+                          padding: '3px 10px',
+                          borderRadius: 'var(--radius-full)',
+                          backgroundColor: 'var(--accent-indigo-alpha)',
+                          color: 'var(--accent-indigo)',
+                          fontWeight: 600,
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.03em',
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {lead.niche}
+                        </span>
+                      )}
+                      {lead.qualityScore != null && <QualityBar score={lead.qualityScore} />}
+                    </div>
                   </div>
 
                   {/* Contact Details */}
@@ -256,11 +346,11 @@ export default function ProspectingPage() {
                     )}
                     {lead.email ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
-                        <Mail size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} /> {lead.email}
+                        <Mail size={13} style={{ color: 'var(--accent-success)', flexShrink: 0 }} /> {lead.email}
                       </div>
                     ) : (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', opacity: 0.6 }}>
-                        <AlertCircle size={13} style={{ flexShrink: 0 }} /> Email not found
+                        <Mail size={13} style={{ flexShrink: 0 }} /> Email not found
                       </div>
                     )}
                     {lead.phone ? (
@@ -269,7 +359,7 @@ export default function ProspectingPage() {
                       </div>
                     ) : (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', opacity: 0.6 }}>
-                        <AlertCircle size={13} style={{ flexShrink: 0 }} /> Phone not found
+                        <Phone size={13} style={{ flexShrink: 0 }} /> Phone not found
                       </div>
                     )}
                     {lead.website && (
@@ -300,7 +390,7 @@ export default function ProspectingPage() {
                       lineHeight: 1.5,
                     }}>
                       <strong style={{ color: 'var(--accent-success)', fontSize: '0.6875rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Why this lead?
+                        Opportunity
                       </strong>
                       <p style={{ margin: '4px 0 0', color: 'var(--text-primary)' }}>{lead.why}</p>
                     </div>
@@ -309,8 +399,8 @@ export default function ProspectingPage() {
                   {/* Actions */}
                   <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                     {isSaved ? (
-                      <button className="btn btn-secondary" disabled style={{ flex: 1, opacity: 0.6 }}>
-                        <CheckCircle size={15} /> Saved to Pipeline
+                      <button className="btn btn-secondary" onClick={() => router.push('/outreach')} style={{ flex: 1, color: 'var(--accent-success)' }}>
+                        <CheckCircle size={15} /> Saved — Write Outreach <ArrowRight size={14} />
                       </button>
                     ) : (
                       <button
@@ -341,9 +431,16 @@ export default function ProspectingPage() {
         <div style={{ textAlign: 'center', padding: 'var(--space-10) var(--space-6)' }}>
           <Sparkles size={48} style={{ color: 'var(--accent-purple)', marginBottom: 'var(--space-4)', opacity: 0.5 }} />
           <h3 style={{ fontWeight: 600, marginBottom: 'var(--space-2)' }}>Describe your ideal customer</h3>
-          <p className="text-muted" style={{ maxWidth: '450px', margin: '0 auto', fontSize: '0.875rem', lineHeight: 1.7 }}>
-            Enter a trade and location above. The AI will search the web, find real businesses, and tell you exactly why each one is a good prospect.
+          <p className="text-muted" style={{ maxWidth: '480px', margin: '0 auto', fontSize: '0.875rem', lineHeight: 1.7 }}>
+            Enter a trade and location above. The AI will find real businesses, scrape their contact info, and tell you exactly why each one is worth reaching out to.
           </p>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: 'var(--space-6)', marginTop: 'var(--space-8)', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Search size={14} /> Find</div>
+            <ArrowRight size={14} style={{ color: 'var(--border-strong)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Save size={14} /> Save</div>
+            <ArrowRight size={14} style={{ color: 'var(--border-strong)' }} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Send size={14} /> Outreach</div>
+          </div>
         </div>
       )}
     </div>
