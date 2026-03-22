@@ -1,18 +1,7 @@
 "use client";
 
 import { useState } from 'react';
-import { Search, Sparkles, Loader2, Save, ExternalLink, MapPin, Mail, Phone, Globe, X, CheckCircle, ChevronDown, ChevronUp, Settings2 } from 'lucide-react';
-
-const DEFAULT_PROMPT = `You are an expert B2B sales prospector. Search the web for real businesses matching: "{query}"
-
-Find up to {limit} distinct, legitimate businesses. Skip directories (Yelp, Angie's List, HomeAdvisor, BBB). Only real business websites.
-
-For each business provide:
-- companyName, website, contactName (or "Owner"), phone, email, location, niche
-- summary: 1-2 sentences about what they do
-- why: A specific reason they'd be a good lead for a tech/SaaS sales team
-
-Return ONLY JSON: { "leads": [...] }`;
+import { Search, Sparkles, Loader2, Save, ExternalLink, MapPin, Mail, Phone, Globe, CheckCircle, ChevronDown, ChevronUp, Settings2, AlertCircle } from 'lucide-react';
 
 export default function ProspectingPage() {
   const [query, setQuery] = useState('');
@@ -24,7 +13,7 @@ export default function ProspectingPage() {
   const [phase, setPhase] = useState('');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [maxResults, setMaxResults] = useState(5);
-  const [systemPrompt, setSystemPrompt] = useState(DEFAULT_PROMPT);
+  const [meta, setMeta] = useState(null);
 
   const handleSearch = async (e) => {
     e.preventDefault();
@@ -43,7 +32,7 @@ export default function ProspectingPage() {
       const res = await fetch('/api/prospect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: query.trim(), maxResults, systemPrompt: systemPrompt !== DEFAULT_PROMPT ? systemPrompt : undefined }),
+        body: JSON.stringify({ query: query.trim(), maxResults }),
       });
 
       clearTimeout(phaseTimer);
@@ -55,6 +44,7 @@ export default function ProspectingPage() {
 
       const data = await res.json();
       setLeads(data.leads || []);
+      setMeta(data.meta || null);
       setPhase('done');
     } catch (err) {
       setError(err.message);
@@ -167,24 +157,9 @@ export default function ProspectingPage() {
           </button>
 
           {showAdvanced && (
-            <div style={{ marginTop: 'var(--space-3)', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
-                <label style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Max Results: <strong style={{ color: 'var(--text-primary)' }}>{maxResults}</strong></label>
-                <input type="range" min={1} max={10} value={maxResults} onChange={e => setMaxResults(Number(e.target.value))} style={{ flex: 1, maxWidth: '200px' }} />
-              </div>
-              <div>
-                <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 'var(--space-2)' }}>
-                  <span>System Prompt</span>
-                  <button type="button" className="btn btn-ghost" style={{ fontSize: '0.6875rem', padding: '2px 6px' }} onClick={() => setSystemPrompt(DEFAULT_PROMPT)}>Reset to Default</button>
-                </label>
-                <textarea
-                  value={systemPrompt}
-                  onChange={e => setSystemPrompt(e.target.value)}
-                  rows={8}
-                  style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.75rem', resize: 'vertical', lineHeight: 1.6 }}
-                />
-                <p style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '4px' }}>Use {'{query}'} and {'{limit}'} as placeholders. They get replaced at runtime.</p>
-              </div>
+            <div style={{ marginTop: 'var(--space-3)', display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+              <label style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>Max Results: <strong style={{ color: 'var(--text-primary)' }}>{maxResults}</strong></label>
+              <input type="range" min={1} max={10} value={maxResults} onChange={e => setMaxResults(Number(e.target.value))} style={{ flex: 1, maxWidth: '200px' }} />
             </div>
           )}
         </div>
@@ -223,11 +198,18 @@ export default function ProspectingPage() {
       {/* Results */}
       {leads.length > 0 && (
         <>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
             <p style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>
               <CheckCircle size={16} style={{ color: 'var(--accent-success)', marginRight: '6px', verticalAlign: '-2px' }} />
               Found {leads.length} prospects for "{query}"
             </p>
+            {meta && (
+              <div style={{ display: 'flex', gap: 'var(--space-3)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                <span>🔍 {meta.discovered} discovered</span>
+                <span>📧 {meta.enriched} with email</span>
+                <span>⏱ {(meta.elapsedMs / 1000).toFixed(1)}s</span>
+              </div>
+            )}
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: 'var(--space-4)' }}>
@@ -272,14 +254,22 @@ export default function ProspectingPage() {
                         <MapPin size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} /> {lead.location}
                       </div>
                     )}
-                    {lead.email && (
+                    {lead.email ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
                         <Mail size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} /> {lead.email}
                       </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', opacity: 0.6 }}>
+                        <AlertCircle size={13} style={{ flexShrink: 0 }} /> Email not found
+                      </div>
                     )}
-                    {lead.phone && (
+                    {lead.phone ? (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)' }}>
                         <Phone size={13} style={{ color: 'var(--text-muted)', flexShrink: 0 }} /> {lead.phone}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', opacity: 0.6 }}>
+                        <AlertCircle size={13} style={{ flexShrink: 0 }} /> Phone not found
                       </div>
                     )}
                     {lead.website && (
