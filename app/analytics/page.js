@@ -7,15 +7,21 @@ import AnalyticsCharts from '@/components/AnalyticsCharts';
 export default function AnalyticsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     async function fetchAnalytics() {
       try {
         const res = await fetch('/api/analytics');
         const json = await res.json();
-        setData(json);
+        if (json.error) {
+          setError(json.error);
+        } else {
+          setData(json);
+        }
       } catch (err) {
         console.error('Failed to fetch analytics:', err);
+        setError(err.message);
       } finally {
         setLoading(false);
       }
