@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Lead {
+  id                String    @id @default(cuid())
+  companyName       String
+  contactName       String
+  email             String?
+  phone             String?
+  website           String?
+  linkedinUrl       String?
+  instagramUrl      String?
+  facebookUrl       String?
+  niche             String
+  location          String?
+  businessCategory  String?
+  leadSource        String    @default("Manual Entry")
+  opportunityLevel  String    @default("medium")
+  stage             String    @default("New Lead")
+  notes             String?
+  assignedTo        String?
+  solutions         String?   // JSON-encoded array of matched solution categories
+
+  // Analysis fields (stored as JSON text for flexibility with SQLite)
+  analysisData      String?   // JSON object: { websiteQuality: {rating, notes}, ... }
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastActivityAt    DateTime  @default(now())
+}

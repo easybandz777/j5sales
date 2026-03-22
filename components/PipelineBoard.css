@@ -1,0 +1,131 @@
+.pipeline-board {
+  display: flex;
+  gap: var(--space-4);
+  height: 100%;
+  overflow-x: auto;
+  padding-bottom: var(--space-4);
+}
+
+.pipeline-column {
+  min-width: 280px;
+  max-width: 280px;
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.pipeline-column.drag-over {
+  border-color: var(--accent-primary);
+  background-color: var(--bg-hover);
+}
+
+.column-header {
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 2px solid var(--bg-base);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.stage-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.lead-count {
+  font-size: 0.75rem;
+  background-color: var(--bg-hover);
+  color: var(--text-muted);
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-weight: 600;
+}
+
+.column-content {
+  padding: var(--space-4) var(--space-3);
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 100px;
+}
+
+/* Scrollbar specifically for columns */
+.column-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.lead-card {
+  background-color: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  cursor: grab;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.lead-card:hover {
+  border-color: var(--text-muted);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.lead-card:active {
+  cursor: grabbing;
+}
+
+.lead-card.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+}
+
+.card-header {
+  margin-bottom: var(--space-1);
+}
+
+.company-name {
+  font-size: 0.875rem;
+  line-height: 1.2;
+}
+
+.card-contact {
+  font-size: 0.75rem;
+  margin-bottom: var(--space-3);
+}
+
+.card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--space-2);
+}
+
+.niche-tag {
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.days-in-stage {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.days-in-stage.stale-warning {
+  color: var(--accent-danger);
+}

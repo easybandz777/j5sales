@@ -1,0 +1,25 @@
+-- CreateTable
+CREATE TABLE "Lead" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "companyName" TEXT NOT NULL,
+    "contactName" TEXT NOT NULL,
+    "email" TEXT,
+    "phone" TEXT,
+    "website" TEXT,
+    "linkedinUrl" TEXT,
+    "instagramUrl" TEXT,
+    "facebookUrl" TEXT,
+    "niche" TEXT NOT NULL,
+    "location" TEXT,
+    "businessCategory" TEXT,
+    "leadSource" TEXT NOT NULL DEFAULT 'Manual Entry',
+    "opportunityLevel" TEXT NOT NULL DEFAULT 'medium',
+    "stage" TEXT NOT NULL DEFAULT 'New Lead',
+    "notes" TEXT,
+    "assignedTo" TEXT,
+    "solutions" TEXT,
+    "analysisData" TEXT,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    "lastActivityAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
+);

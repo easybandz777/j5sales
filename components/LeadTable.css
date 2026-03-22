@@ -1,0 +1,83 @@
+.table-container {
+  overflow-x: auto;
+}
+
+.lead-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.lead-table th {
+  padding: var(--space-4);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--bg-hover);
+}
+
+.lead-table td {
+  padding: var(--space-4);
+  vertical-align: middle;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 0.875rem;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.clickable-row:hover {
+  background-color: var(--bg-hover);
+}
+
+.clickable-row:last-child td {
+  border-bottom: none;
+}
+
+.company-cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.website-link {
+  color: var(--text-muted);
+  display: inline-flex;
+  transition: color 0.15s ease;
+}
+
+.website-link:hover {
+  color: var(--accent-primary);
+}
+
+.contact-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.small {
+  font-size: 0.75rem;
+}
+
+.niche-badge {
+  background-color: var(--bg-elevated);
+  padding: 2px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+.empty-state {
+  padding: var(--space-12);
+  text-align: center;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(26, 26, 29, 0.5); /* translucent elevated bg */
+  border: 1px dashed var(--border-strong);
+}
