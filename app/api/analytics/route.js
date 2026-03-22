@@ -37,6 +37,6 @@ export async function GET() {
     });
   } catch (error) {
     console.error('GET /api/analytics error:', error);
-    return NextResponse.json({ error: 'Failed to fetch analytics', details: error.message, stack: error.stack?.substring(0, 500) }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to fetch analytics' }, { status: 500 });
   }
 }
